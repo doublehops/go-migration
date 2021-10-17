@@ -17,7 +17,6 @@ func (h *Handle) getLatestRanMigration() (string, error) {
 	rows, err := h.db.Query(GetLatestMigrationSQL)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Println(">> NO ROWS FOUND")
 			return "", nil
 		}
 	}
@@ -28,7 +27,6 @@ func (h *Handle) getLatestRanMigration() (string, error) {
 
 	for rows.Next() {
 		if err = rows.Scan(&record.Filename, &record.CreatedAt); err != nil {
-			fmt.Printf(">> Query: %s\n", GetLatestMigrationSQL)
 			return "", fmt.Errorf("error retrieving rows from migration table. %s", err)
 		}
 	}

@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
-	"strconv"
+	"time"
 )
 
 type Args struct {
 	action string
-	number int
+	actionOperand string
 }
 
 type Handle struct {
@@ -51,7 +52,10 @@ func (h *Handle) Migrate() error {
 
 	switch args.action {
 	case "create":
-		fmt.Println("create")
+		err = h.createMigration(args.actionOperand)
+		if err != nil {
+			return err
+		}
 	}
 
 	migrationsNotRun := h.getMigrationsNotRun(allFiles, lastRanMigration)
@@ -102,20 +106,49 @@ func getArguments() *Args{
 	}
 
 	if args.action == "create" {
+		if len(argList) < 2 {
+			printHelp()
+		}
+		args.actionOperand = argList[1]
 		return args
 	}
 
 	if len(argList) > 1 {
-		num, err := strconv.Atoi(argList[1])
-		if err != nil {
-			printHelp()
-		}
-		args.number = num
+		//num, err := strconv.Atoi(argList[1])
+		args.actionOperand = argList[1]
 	} else {
-		args.number = 9999 // Run all migrations
+		args.actionOperand = "all" // Run all migrations
 	}
 
 	return args
+}
+
+// createMigration will copy template file into new fil
+func (h *Handle) createMigration(name string) error {
+	currentTime := time.Now()
+	curTime := fmt.Sprintf(currentTime.Format("20060102_150405_"))
+	name = curTime+name+".json"
+	path := h.path+"/"+name
+
+	//// @todo: use relative path - https://forum.golangbridge.org/t/how-to-get-relative-path-from-runtime-caller/15690/5
+	//template := pwd+"/"+templatePath
+	template := `{
+  "up": [
+    "CREATE TABLE 'test' ( name VARCHAR(255))"
+  ],
+  "down": [
+    "DROP TABLE 'test'"
+  ]
+}`
+
+	err := ioutil.WriteFile(path, []byte(template), 0644)
+	if err != nil {
+		return fmt.Errorf("unable to write template file. %s", err)
+	}
+
+	os.Stderr.WriteString("Migration file created: "+ path +"\n")
+
+	return nil
 }
 
 func sliceContains(key string, slice []string) bool {
