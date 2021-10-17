@@ -6,16 +6,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"time"
 )
 
 type Args struct {
 	action string
-	actionOperand string
+	number int
+	name   string
 }
 
 type Handle struct {
-	db *sql.DB
+	db   *sql.DB
 	path string
 }
 
@@ -28,14 +30,18 @@ type Table struct {
 func New(db *sql.DB, path string) *Handle {
 
 	return &Handle{
-		db: db,
+		db:   db,
 		path: path,
 	}
 }
 
 func (h *Handle) Migrate() error {
-	args := getArguments()
-	err := h.ensureMigrationsTable()
+	args, err := getArguments()
+	if err != nil {
+		return err
+	}
+
+	err = h.ensureMigrationsTable()
 	if err != nil {
 		fmt.Println(">>>>>> Failing here <<<<<<<")
 		return err
@@ -52,7 +58,7 @@ func (h *Handle) Migrate() error {
 
 	switch args.action {
 	case "create":
-		err = h.createMigration(args.actionOperand)
+		err = h.createMigration(args.name)
 		if err != nil {
 			return err
 		}
@@ -84,8 +90,10 @@ func (h Handle) up(number *int, allFiles []string) error {
 	return nil
 }
 
-// getArguments will read the arguments from the command and populate an Args struct.
-func getArguments() *Args{
+// getArguments will read the arguments from the command and populate an Args struct. Possible options for arg 1 is `create`,
+// `up` and `down`. For create, the second arg is the migration name. For up/down, the second argument is the number of
+// migrations to perform.
+func getArguments() (*Args, error) {
 	args := &Args{}
 
 	argList := os.Args[1:]
@@ -106,29 +114,37 @@ func getArguments() *Args{
 	}
 
 	if args.action == "create" {
-		if len(argList) < 2 {
+
+		if len(os.Args[:1]) < 2 {
 			printHelp()
 		}
-		args.actionOperand = argList[1]
-		return args
+		args.name = os.Args[1]
+
+		return args, nil
 	}
 
 	if len(argList) > 1 {
-		//num, err := strconv.Atoi(argList[1])
-		args.actionOperand = argList[1]
+		if _, err := strconv.Atoi(argList[1]); err == nil {
+			printHelp()
+		}
+		number, err := strconv.Atoi(argList[1])
+		if err != nil {
+			return args, fmt.Errorf("unable to convert second argument to int. %s", err)
+		}
+		args.number = number
 	} else {
-		args.actionOperand = "all" // Run all migrations
+		args.number = 0
 	}
 
-	return args
+	return args, nil
 }
 
 // createMigration will copy template file into new fil
 func (h *Handle) createMigration(name string) error {
 	currentTime := time.Now()
 	curTime := fmt.Sprintf(currentTime.Format("20060102_150405_"))
-	name = curTime+name+".json"
-	path := h.path+"/"+name
+	name = curTime + name + ".json"
+	path := h.path + "/" + name
 
 	//// @todo: use relative path - https://forum.golangbridge.org/t/how-to-get-relative-path-from-runtime-caller/15690/5
 	//template := pwd+"/"+templatePath
@@ -146,7 +162,7 @@ func (h *Handle) createMigration(name string) error {
 		return fmt.Errorf("unable to write template file. %s", err)
 	}
 
-	os.Stderr.WriteString("Migration file created: "+ path +"\n")
+	os.Stderr.WriteString("Migration file created: " + path + "\n")
 
 	return nil
 }
