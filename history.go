@@ -6,6 +6,7 @@ import (
 )
 
 type MigrationRecord struct {
+	ID int
 	Filename string
 	CreatedAt string
 }
@@ -26,7 +27,7 @@ func (h *Handle) getLatestRanMigration() (string, error) {
 	}
 
 	for rows.Next() {
-		if err = rows.Scan(&record.Filename, &record.CreatedAt); err != nil {
+		if err = rows.Scan(&record.ID, &record.Filename, &record.CreatedAt); err != nil {
 			return "", fmt.Errorf("error retrieving rows from migration table. %s", err)
 		}
 	}

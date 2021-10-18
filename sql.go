@@ -19,3 +19,10 @@ var CheckMigrationsTableExistsSQL =
 	FROM INFORMATION_SCHEMA.TABLES
 	WHERE TABLE_SCHEMA = 'cw' AND TABLE_NAME = 'migrations'
 `
+
+var InsertMigrationRecordIntoTableSQL =
+	`INSERT INTO migrations 
+	(filename,created_at)
+	VALUES
+	(?,NOW())
+`

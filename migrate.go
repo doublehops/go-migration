@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -14,6 +13,16 @@ type Args struct {
 	action string
 	number int
 	name   string
+}
+
+type File struct {
+	Filename string
+	Queries  *Queries
+}
+
+type Queries struct {
+	Up   []string `json:"up"`
+	Down []string `json:"down"`
 }
 
 type Handle struct {
@@ -43,51 +52,73 @@ func (h *Handle) Migrate() error {
 
 	err = h.ensureMigrationsTable()
 	if err != nil {
-		fmt.Println(">>>>>> Failing here <<<<<<<")
-		return err
-	}
-
-	lastRanMigration, err := h.getLatestRanMigration()
-	if err != nil {
-		return err
-	}
-	allFiles, err := h.listMigrationFiles()
-	if err != nil {
 		return err
 	}
 
 	switch args.action {
 	case "create":
 		err = h.createMigration(args.name)
-		if err != nil {
-			return err
-		}
+	case "up":
+		err = h.migrateUp(args)
 	}
-
-	migrationsNotRun := h.getMigrationsNotRun(allFiles, lastRanMigration)
-	fmt.Printf("%v\n", migrationsNotRun)
-
-	direction := flag.String("direction", "up", "Direction to migrate. `up` (default) or `down`")
-	number := flag.Int("number", 0, "Number of migration files to process. Defaults to 0 (all pending for up, or 1 for down)")
-	flag.Parse()
-
-	if *direction == "up" {
-		err = h.up(number, allFiles)
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (h Handle) up(number *int, allFiles []string) error {
+func (h Handle) migrateUp(args *Args) error {
 
-	for _, file := range allFiles {
-		fmt.Println(file)
+	pendingFiles, err := h.getPendingMigrationFiles()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%v\n", pendingFiles)
+
+	migrations, err := h.parseMigrations(pendingFiles)
+	if err != nil {
+		return err
+	}
+
+	i :=  0
+
+	fmt.Println(">>>>> HERE aaa")
+	tx, err := h.db.Begin()
+	if err != nil {
+		return fmt.Errorf("error starting transaction. %w", err)
+	}
+
+	for _, item := range migrations {
+		for _, q := range item.Queries.Up {
+			_, err = tx.Exec(q)
+			if err == nil {
+				tx.Rollback()
+				return fmt.Errorf("there was an error executing query. File: %s; query; %s; %w", item.Filename, q, err)
+			}
+		}
+		_, err = tx.Exec(InsertMigrationRecordIntoTableSQL, item.Filename)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("unable to update migration table with newly ran migration record. %w", err)
+		}
+		h.printExecuteStatement(item.Filename)
+		i++ // Only perform number of migrations equal to that supplied in argument
+		if i == args.number {
+			break
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("there was an error committing transaction. %w", err)
 	}
 
 	return nil
+}
+
+func (h *Handle) printExecuteStatement(filename string) {
+	os.Stderr.WriteString("Migration has executed successfully: "+ filename +"\n")
 }
 
 // getArguments will read the arguments from the command and populate an Args struct. Possible options for arg 1 is `create`,
@@ -114,20 +145,20 @@ func getArguments() (*Args, error) {
 	}
 
 	if args.action == "create" {
-
-		if len(os.Args[:1]) < 2 {
+		if len(argList) < 2 {
 			printHelp()
 		}
-		args.name = os.Args[1]
+		args.name = argList[1]
 
 		return args, nil
 	}
 
 	if len(argList) > 1 {
-		if _, err := strconv.Atoi(argList[1]); err == nil {
+		number, err := strconv.Atoi(argList[1])
+		if err != nil {
 			printHelp()
 		}
-		number, err := strconv.Atoi(argList[1])
+
 		if err != nil {
 			return args, fmt.Errorf("unable to convert second argument to int. %s", err)
 		}
@@ -146,8 +177,6 @@ func (h *Handle) createMigration(name string) error {
 	name = curTime + name + ".json"
 	path := h.path + "/" + name
 
-	//// @todo: use relative path - https://forum.golangbridge.org/t/how-to-get-relative-path-from-runtime-caller/15690/5
-	//template := pwd+"/"+templatePath
 	template := `{
   "up": [
     "CREATE TABLE 'test' ( name VARCHAR(255))"
@@ -162,7 +191,7 @@ func (h *Handle) createMigration(name string) error {
 		return fmt.Errorf("unable to write template file. %s", err)
 	}
 
-	os.Stderr.WriteString("Migration file created: " + path + "\n")
+	os.Stderr.WriteString("Migration file created: " + name + "\n")
 
 	return nil
 }
@@ -199,7 +228,6 @@ func (h *Handle) ensureMigrationsTable() error {
 		}
 		tableList = append(tableList, t)
 	}
-	fmt.Printf("%v\n", tableList)
 
 	for _, tbl := range tableList {
 		if tbl.Name == "migrations" { // Already exists
