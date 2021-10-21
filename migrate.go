@@ -5,27 +5,14 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/doublehops/go-migration/action"
 )
 
-type Args struct {
-	action string
-	number int
-	name   string
-}
-
-type File struct {
-	Filename string
-	Queries  *Queries
-}
-
-type Queries struct {
-	Up   []string `json:"up"`
-	Down []string `json:"down"`
-}
-
 type Handle struct {
-	db   *sql.DB
-	path string
+	db     *sql.DB
+	path   string
+	action *action.Action
 }
 
 type TableList []Table
@@ -34,30 +21,45 @@ type Table struct {
 	Name string
 }
 
-func New(db *sql.DB, path string) *Handle {
+func New(db *sql.DB, path string) (*Handle, error) {
+
+	var handle *Handle
+	args, err := getArguments()
+	if err != nil {
+		return handle, err
+	}
+
+	a := &action.Action{
+		Action: args.Action,
+		Number: args.Number,
+		Name: args.Name,
+		DB: db,
+	}
 
 	return &Handle{
 		db:   db,
 		path: path,
-	}
+		action: a,
+	}, nil
 }
 
 func (h *Handle) Migrate() error {
-	args, err := getArguments()
+
+	err := h.ensureMigrationsTableExists()
 	if err != nil {
 		return err
 	}
 
-	err = h.ensureMigrationsTable()
-	if err != nil {
+	if h.action.Action == "create" {
+		err = h.action.CreateMigration(h.path)
 		return err
 	}
 
-	switch args.action {
-	case "create":
-		err = h.createMigration(args.name)
-	case "up":
-		err = h.migrateUp(args)
+	pendingFiles, err := h.getPendingMigrationFiles()
+	migrationFiles, err := h.parseMigrations(pendingFiles)
+
+	if h.action.Action == "up" {
+		err = h.action.MigrateUp(migrationFiles)
 	}
 	if err != nil {
 		return err
@@ -69,8 +71,8 @@ func (h *Handle) Migrate() error {
 // getArguments will read the arguments from the command and populate an Args struct. Possible options for arg 1 is `create`,
 // `up` and `down`. For create, the second arg is the migration name. For up/down, the second argument is the number of
 // migrations to perform.
-func getArguments() (*Args, error) {
-	args := &Args{}
+func getArguments() (*action.Action, error) {
+	var args action.Action
 
 	argList := os.Args[1:]
 
@@ -84,18 +86,18 @@ func getArguments() (*Args, error) {
 		"down",
 	}
 
-	args.action = argList[0]
-	if found := sliceContains(args.action, possibleArgs); !found {
+	args.Action = argList[0]
+	if found := sliceContains(args.Action, possibleArgs); !found {
 		printHelp()
 	}
 
-	if args.action == "create" {
+	if args.Action == "create" {
 		if len(argList) < 2 {
 			printHelp()
 		}
-		args.name = argList[1]
+		args.Name = argList[1]
 
-		return args, nil
+		return &args, nil
 	}
 
 	if len(argList) > 1 {
@@ -105,14 +107,14 @@ func getArguments() (*Args, error) {
 		}
 
 		if err != nil {
-			return args, fmt.Errorf("unable to convert second argument to int. %s", err)
+			return &args, fmt.Errorf("unable to convert second argument to int. %s", err)
 		}
-		args.number = number
+		args.Number = number
 	} else {
-		args.number = 0
+		args.Number = 0
 	}
 
-	return args, nil
+	return &args, nil
 }
 
 func sliceContains(key string, slice []string) bool {
@@ -133,9 +135,10 @@ Usage: <<< show help here >>>
 	os.Exit(1)
 }
 
-func (h *Handle) ensureMigrationsTable() error {
+// ensureMigrationsTableExists to create table to track migrations.
+func (h *Handle) ensureMigrationsTableExists() error {
 	var tableList TableList
-	rows, err := h.db.Query(CheckMigrationsTableExistsSQL)
+	rows, err := h.db.Query(action.CheckMigrationsTableExistsSQL)
 	if err != nil {
 		return fmt.Errorf("++++>>>> Error: %w", err)
 	}

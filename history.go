@@ -3,6 +3,7 @@ package migrations
 import (
 	"database/sql"
 	"fmt"
+	"github.com/doublehops/go-migration/action"
 )
 
 type MigrationRecord struct {
@@ -15,7 +16,7 @@ type MigrationRecord struct {
 func (h *Handle) getLatestRanMigration() (string, error) {
 
 	var record MigrationRecord
-	rows, err := h.db.Query(GetLatestMigrationSQL)
+	rows, err := h.db.Query(action.GetLatestMigrationSQL)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", nil
@@ -58,7 +59,7 @@ func (h *Handle) getMigrationsNotRun(files []string, lastRanMigration string) []
 // addMigrationTable will add a `migration` table to the database to track what has been
 func (h *Handle) addMigrationTable() error {
 
-	_, err := h.db.Exec(CreateMigrationsTable)
+	_, err := h.db.Exec(action.CreateMigrationsTable)
 	if err != nil {
 		return fmt.Errorf("error creating migrations table. %s", err)
 	}

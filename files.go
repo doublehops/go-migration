@@ -3,6 +3,7 @@ package migrations
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/doublehops/go-migration/action"
 	"io/ioutil"
 	"os"
 )
@@ -57,17 +58,17 @@ func (h *Handle) getPendingMigrationFiles() ([]string, error) {
 }
 
 // parseMigrations will iterate through the files and unmarshal the JSON and add to the files slice.
-func (h *Handle) parseMigrations(filesToParse []string) ([]File, error) {
-	var files []File
+func (h *Handle) parseMigrations(filesToParse []string) ([]action.File, error) {
+	var files []action.File
 	for _, file := range filesToParse {
 
-		thisFile := File{Filename: file}
+		thisFile := action.File{Filename: file}
 		data, err := os.ReadFile(h.path+"/"+file)
 		if err != nil {
 			return files, fmt.Errorf("unable to read file: %s. %s", file, err)
 		}
 
-		var q Queries
+		var q action.Queries
 		err = json.Unmarshal(data, &q)
 		if err != nil {
 			return files, fmt.Errorf("unable to unmarshal query. %s", err)
