@@ -3,10 +3,8 @@ package migrations
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
-	"time"
 )
 
 type Args struct {
@@ -68,59 +66,6 @@ func (h *Handle) Migrate() error {
 	return nil
 }
 
-func (h Handle) migrateUp(args *Args) error {
-
-	pendingFiles, err := h.getPendingMigrationFiles()
-	if err != nil {
-		return err
-	}
-	fmt.Printf("%v\n", pendingFiles)
-
-	migrations, err := h.parseMigrations(pendingFiles)
-	if err != nil {
-		return err
-	}
-
-	i :=  0
-
-	fmt.Println(">>>>> HERE aaa")
-	tx, err := h.db.Begin()
-	if err != nil {
-		return fmt.Errorf("error starting transaction. %w", err)
-	}
-
-	for _, item := range migrations {
-		for _, q := range item.Queries.Up {
-			_, err = tx.Exec(q)
-			if err == nil {
-				tx.Rollback()
-				return fmt.Errorf("there was an error executing query. File: %s; query; %s; %w", item.Filename, q, err)
-			}
-		}
-		_, err = tx.Exec(InsertMigrationRecordIntoTableSQL, item.Filename)
-		if err != nil {
-			tx.Rollback()
-			return fmt.Errorf("unable to update migration table with newly ran migration record. %w", err)
-		}
-		h.printExecuteStatement(item.Filename)
-		i++ // Only perform number of migrations equal to that supplied in argument
-		if i == args.number {
-			break
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fmt.Errorf("there was an error committing transaction. %w", err)
-	}
-
-	return nil
-}
-
-func (h *Handle) printExecuteStatement(filename string) {
-	os.Stderr.WriteString("Migration has executed successfully: "+ filename +"\n")
-}
-
 // getArguments will read the arguments from the command and populate an Args struct. Possible options for arg 1 is `create`,
 // `up` and `down`. For create, the second arg is the migration name. For up/down, the second argument is the number of
 // migrations to perform.
@@ -168,32 +113,6 @@ func getArguments() (*Args, error) {
 	}
 
 	return args, nil
-}
-
-// createMigration will copy template file into new fil
-func (h *Handle) createMigration(name string) error {
-	currentTime := time.Now()
-	curTime := fmt.Sprintf(currentTime.Format("20060102_150405_"))
-	name = curTime + name + ".json"
-	path := h.path + "/" + name
-
-	template := `{
-  "up": [
-    "CREATE TABLE 'test' ( name VARCHAR(255))"
-  ],
-  "down": [
-    "DROP TABLE 'test'"
-  ]
-}`
-
-	err := ioutil.WriteFile(path, []byte(template), 0644)
-	if err != nil {
-		return fmt.Errorf("unable to write template file. %s", err)
-	}
-
-	os.Stderr.WriteString("Migration file created: " + name + "\n")
-
-	return nil
 }
 
 func sliceContains(key string, slice []string) bool {
