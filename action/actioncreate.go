@@ -3,8 +3,9 @@ package action
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"time"
+
+	"github.com/doublehops/go-migration/helpers"
 )
 
 // CreateMigration will copy template file into new fil
@@ -16,10 +17,10 @@ func (a *Action) CreateMigration(path string) error {
 
 	template := `{
   "up": [
-    "CREATE TABLE test ( name VARCHAR(255))"
+    "CREATE TABLE news (id INT(11) NOT NULL, currency_id INT(11) NOT NULL, created_at DATETIME, updated_at DATETIME, deleted_at DATETIME, PRIMARY KEY (id), FOREIGN KEY (currency_id) REFERENCES currency(id));"
   ],
   "down": [
-    "DROP TABLE test"
+    "DROP TABLE news"
   ]
 }`
 
@@ -28,7 +29,7 @@ func (a *Action) CreateMigration(path string) error {
 		return fmt.Errorf("unable to write template file. %s", err)
 	}
 
-	os.Stderr.WriteString("Migration file created: " + name + "\n")
+	helpers.PrintMsg("Migration file created: " + name + "\n")
 
 	return nil
 }
