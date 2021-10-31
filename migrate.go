@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/doublehops/go-migration/action"
+	"github.com/doublehops/go-migration/helpers"
 )
 
 type Handle struct {
@@ -61,7 +62,7 @@ func (h *Handle) Migrate() error {
 			return err
 		}
 		if len(pendingFiles) == 0 {
-			os.Stderr.WriteString("There are no pending migrations\n")
+			helpers.PrintMsg("There are no pending migrations\n")
 			return nil
 		}
 		migrationFiles, err := h.parseMigrations(pendingFiles)
