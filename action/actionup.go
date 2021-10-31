@@ -9,17 +9,11 @@ import (
 // MigrateUp will run new migration/s.
 func (a *Action) MigrateUp(migrationFiles []File) error {
 	var err error
-	i := 0
 
 	for _, file := range migrationFiles {
 		err = a.processFileUp(file)
 		if err != nil {
 			return err
-		}
-
-		i++ // Only perform number of migrations (files) equal to that supplied in argument
-		if i == a.Number {
-			break
 		}
 	}
 

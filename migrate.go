@@ -55,16 +55,20 @@ func (h *Handle) Migrate() error {
 		return err
 	}
 
-	pendingFiles, err := h.getPendingMigrationFiles()
-	if err != nil {
-		return err
-	}
-	migrationFiles, err := h.parseMigrations(pendingFiles)
-	if err != nil {
-		return err
-	}
-
 	if h.action.Action == "up" {
+		pendingFiles, err := h.getPendingMigrationFiles()
+		if err != nil {
+			return err
+		}
+		if len(pendingFiles) == 0 {
+			os.Stderr.WriteString("There are no pending migrations\n")
+			return nil
+		}
+		migrationFiles, err := h.parseMigrations(pendingFiles)
+		if err != nil {
+			return err
+		}
+
 		if err = h.action.MigrateUp(migrationFiles); err != nil {
 			return err
 		}

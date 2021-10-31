@@ -42,6 +42,7 @@ func (h *Handle) getPendingMigrationFiles() ([]string, error) {
 		return allFiles, nil
 	}
 
+	var i = 0
 	for _, file := range allFiles {
 		if file == lastRanMigration {
 			foundLastRan = true
@@ -52,6 +53,10 @@ func (h *Handle) getPendingMigrationFiles() ([]string, error) {
 		}
 
 		pendingFiles = append(pendingFiles, file)
+		i++
+		if i == h.action.Number {
+			break
+		}
 	}
 
 	return pendingFiles, nil
