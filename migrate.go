@@ -56,13 +56,18 @@ func (h *Handle) Migrate() error {
 	}
 
 	pendingFiles, err := h.getPendingMigrationFiles()
-	migrationFiles, err := h.parseMigrations(pendingFiles)
-
-	if h.action.Action == "up" {
-		err = h.action.MigrateUp(migrationFiles)
-	}
 	if err != nil {
 		return err
+	}
+	migrationFiles, err := h.parseMigrations(pendingFiles)
+	if err != nil {
+		return err
+	}
+
+	if h.action.Action == "up" {
+		if err = h.action.MigrateUp(migrationFiles); err != nil {
+			return err
+		}
 	}
 
 	return nil
