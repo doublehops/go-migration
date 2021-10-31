@@ -36,26 +36,6 @@ func (h *Handle) getLatestRanMigration() (string, error) {
 	return record.Filename, nil
 }
 
-// getMigrationsNotRun will find the last processed migration.
-func (h *Handle) getMigrationsNotRun(files []string, lastRanMigration string) []string {
-	var migrationsNotRan []string
-	var foundLastRan bool = false
-
-	for _, file := range files {
-		if file == lastRanMigration {
-			foundLastRan = true
-			continue
-		}
-		if !foundLastRan {
-			continue
-		}
-
-		migrationsNotRan = append(migrationsNotRan, file)
-	}
-
-	return migrationsNotRan
-}
-
 // addMigrationTable will add a `migration` table to the database to track what has been
 func (h *Handle) addMigrationTable() error {
 

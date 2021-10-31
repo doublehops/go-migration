@@ -10,7 +10,7 @@ import (
 // CreateMigration will copy template file into new fil
 func (a *Action) CreateMigration(path string) error {
 	currentTime := time.Now()
-	curTime := fmt.Sprintf(currentTime.Format("20060102_150405_"))
+	curTime := currentTime.Format("20060102_150405_")
 	name := curTime + a.Name + ".json"
 	path = path + "/" + name
 

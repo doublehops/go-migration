@@ -28,7 +28,7 @@ func (a *Action) processFileUp(file File) error {
 	if err != nil {
 		return fmt.Errorf("error starting transaction. %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback() // nolint
 
 	helpers.PrintMsg(fmt.Sprintf("Migrating queries from: %s", file.Filename))
 	for _, q := range file.Queries.Up {
