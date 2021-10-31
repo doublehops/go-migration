@@ -45,8 +45,9 @@ func New(db *sql.DB, path string) (*Handle, error) {
 }
 
 func (h *Handle) Migrate() error {
+	var err error
 
-	err := h.ensureMigrationsTableExists()
+	err = h.ensureMigrationsTableExists()
 	if err != nil {
 		return err
 	}
@@ -71,6 +72,26 @@ func (h *Handle) Migrate() error {
 		}
 
 		if err = h.action.MigrateUp(migrationFiles); err != nil {
+			return err
+		}
+	}
+
+	if h.action.Action == "down" {
+		previousFiles, err := h.getMigrationFilesToRollBack()
+		if err != nil {
+			return err
+		}
+		if len(previousFiles) == 0 {
+			helpers.PrintMsg("There are no previous migrations to rollback\n")
+			return nil
+		}
+		migrationFiles, err := h.parseMigrations(previousFiles)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("previousFiles: %v\n", previousFiles)
+		if err = h.action.MigrateDown(migrationFiles); err != nil {
 			return err
 		}
 	}
@@ -121,7 +142,11 @@ func getArguments() (*action.Action, error) {
 		}
 		args.Number = number
 	} else {
-		args.Number = 0
+		if args.Action == "up" {
+			args.Number = 9999 // Migrate up all files if no number has been specified.
+		} else {
+			args.Number = 1 // Only migrate down one file at a time if no number has been specified.
+		}
 	}
 
 	return &args, nil

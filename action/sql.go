@@ -27,3 +27,8 @@ var InsertMigrationRecordIntoTableSQL =
 	(?,NOW())
 `
 
+var RemoveMigrationRecordFromTableSQL =
+	`DELETE FROM migrations 
+	WHERE filename = ?
+`
+

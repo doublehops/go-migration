@@ -3,9 +3,11 @@ package migrations
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/doublehops/go-migration/action"
 	"io/ioutil"
 	"os"
+	"sort"
+
+	"github.com/doublehops/go-migration/action"
 )
 
 // listMigrationFiles will get migration files from the configured path.
@@ -27,7 +29,7 @@ func (h *Handle) listMigrationFiles() ([]string, error) {
 // getPendingMigrationFiles will loop through all migration files and return the ones that haven't been run yet.
 func (h *Handle) getPendingMigrationFiles() ([]string, error) {
 	var pendingFiles []string
-	var foundLastRan bool = false
+	var foundLastRan = false
 
 	lastRanMigration, err := h.getLatestRanMigration()
 	if err != nil {
@@ -39,11 +41,14 @@ func (h *Handle) getPendingMigrationFiles() ([]string, error) {
 	}
 
 	if lastRanMigration == "" { // No migrations have run yet.
-		return allFiles, nil
+		foundLastRan = true // If no migrations have previously ran, set found as true to start from first file.
 	}
 
 	var i = 0
 	for _, file := range allFiles {
+		if i == h.action.Number {
+			break
+		}
 		if file == lastRanMigration {
 			foundLastRan = true
 			continue
@@ -54,12 +59,53 @@ func (h *Handle) getPendingMigrationFiles() ([]string, error) {
 
 		pendingFiles = append(pendingFiles, file)
 		i++
-		if i == h.action.Number {
-			break
-		}
 	}
 
 	return pendingFiles, nil
+}
+
+// getPreviouslyMigratedFiles will loop through all migration files and return the ones that have already been run.
+func (h *Handle) getMigrationFilesToRollBack() ([]string, error) {
+	var migrationsToRollBack []string
+	var foundLastRan = false
+
+	lastRanMigration, err := h.getLatestRanMigration()
+	if err != nil {
+		return migrationsToRollBack, err
+	}
+	allFiles, err := h.listMigrationFiles()
+	if err != nil {
+		return migrationsToRollBack, err
+	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(allFiles)))
+
+	if lastRanMigration == "" { // No migrations have run yet.
+		return migrationsToRollBack, nil
+	}
+
+	fmt.Printf("allFiles: %v\n\n", allFiles)
+
+	var i = 0
+	for _, file := range allFiles {
+		if i == h.action.Number {
+			break
+		}
+		if file == lastRanMigration {
+			foundLastRan = true
+			migrationsToRollBack = append(migrationsToRollBack, file)
+			i++
+			continue
+		}
+		if !foundLastRan {
+			continue
+		}
+
+		migrationsToRollBack = append(migrationsToRollBack, file)
+		i++
+	}
+
+	return migrationsToRollBack, nil
 }
 
 // parseMigrations will iterate through the files and unmarshal the JSON and add to the files slice.
