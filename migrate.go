@@ -164,7 +164,11 @@ func sliceContains(key string, slice []string) bool {
 
 func printHelp() {
 	var helpMsg = `
-Usage: <<< show help here >>>
+Usage: <your_script> <action> <name|number>
+Examples: 
+./main.go create add_user_table // Will create a new migration file with template.
+./main.go up 1 // number is optional. Will run all migrations if not included.
+./main.go down 1 // number is optional. Will run only one migration if not included.
 `
 	os.Stderr.WriteString(helpMsg)
 	os.Exit(1)
