@@ -1,17 +1,19 @@
 package migrations
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/doublehops/go-migration/action"
 )
 
 // listMigrationFiles will get migration files from the configured path.
 func (h *Handle) listMigrationFiles() ([]string, error) {
+
+	fileFilter := "."+ h.action.Action +".sql"
 
 	var files []string
 	f, err := ioutil.ReadDir(h.path)
@@ -20,7 +22,9 @@ func (h *Handle) listMigrationFiles() ([]string, error) {
 	}
 
 	for _, file := range f {
-		files = append(files, file.Name())
+		if strings.Contains(file.Name(), fileFilter) {
+			files = append(files, file.Name())
+		}
 	}
 
 	return files, nil
@@ -81,17 +85,18 @@ func (h *Handle) getMigrationFilesToRollBack() ([]string, error) {
 	sort.Sort(sort.Reverse(sort.StringSlice(allFiles)))
 
 	if lastRanMigration == "" { // No migrations have run yet.
-		return migrationsToRollBack, nil
+		return allFiles, nil
 	}
 
-	fmt.Printf("allFiles: %v\n\n", allFiles)
+	lastRanMigrationShortName := action.TrimExtension(lastRanMigration)
 
 	var i = 0
 	for _, file := range allFiles {
+		shortFileName := action.TrimExtension(file)
 		if i == h.action.Number {
 			break
 		}
-		if file == lastRanMigration {
+		if shortFileName == lastRanMigrationShortName {
 			foundLastRan = true
 			migrationsToRollBack = append(migrationsToRollBack, file)
 			i++
@@ -119,13 +124,8 @@ func (h *Handle) parseMigrations(filesToParse []string) ([]action.File, error) {
 			return files, fmt.Errorf("unable to read file: %s. %s", file, err)
 		}
 
-		var q action.Queries
-		err = json.Unmarshal(data, &q)
-		if err != nil {
-			return files, fmt.Errorf("unable to unmarshal query. %s", err)
-		}
+		thisFile.Queries = string(data)
 
-		thisFile.Queries = &q
 		files = append(files, thisFile)
 	}
 

@@ -90,7 +90,6 @@ func (h *Handle) Migrate() error {
 			return err
 		}
 
-		fmt.Printf("previousFiles: %v\n", previousFiles)
 		if err = h.action.MigrateDown(migrationFiles); err != nil {
 			return err
 		}

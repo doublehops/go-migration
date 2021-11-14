@@ -2,7 +2,6 @@ package action
 
 import (
 	"fmt"
-
 	"github.com/doublehops/go-migration/helpers"
 )
 
@@ -31,12 +30,11 @@ func (a *Action) processFileUp(file File) error {
 	defer tx.Rollback() // nolint
 
 	helpers.PrintMsg(fmt.Sprintf("Migrating queries from: %s", file.Filename))
-	for _, q := range file.Queries.Up {
-		_, err = tx.Exec(q)
-		if err != nil {
-			return fmt.Errorf("\nthere was an error executing query. File: %s; query; %s; Error: %s", file.Filename, q, err)
-		}
+	_, err = tx.Exec(file.Queries)
+	if err != nil {
+		return fmt.Errorf("\nthere was an error executing query. File: %s; query; %s; Error: %s", file.Filename, file.Queries, err)
 	}
+
 	_, err = tx.Exec(InsertMigrationRecordIntoTableSQL, file.Filename)
 	if err != nil {
 		return fmt.Errorf("unable to update migration table with newly ran migration record. %w", err)
