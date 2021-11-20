@@ -85,7 +85,7 @@ func (h *Handle) getMigrationFilesToRollBack() ([]string, error) {
 	sort.Sort(sort.Reverse(sort.StringSlice(allFiles)))
 
 	if lastRanMigration == "" { // No migrations have run yet.
-		return allFiles, nil
+		return migrationsToRollBack, nil
 	}
 
 	lastRanMigrationShortName := action.TrimExtension(lastRanMigration)
