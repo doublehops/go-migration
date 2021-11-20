@@ -1,7 +1,7 @@
 ## Golang Database Migration Tool
 
 This is a tool that is designed to automate database migrations. It is based on
-the migrations of Yii2 framework.
+the design of migrations of Yii2 framework.
 
 ### Usage
 `<entry_script> <action> <name|number>`
@@ -53,12 +53,15 @@ func main() {
 ```
 If this script was saved as `migrate.go`, you would run it with `go run migrate.go create new_user_table`
 
-### Additional
-Unfortunately JSON doesn't allow carriage returns inside the string so each SQL statement needs to be 
-on a single line, hurting readability. Suggestions about how to get around this are welcome.
+Migration files will be saved to the location defined by the second parameter in call to `migrate.New()`. Two files will be created.
+One for migration up and another for down. Once created, you should edit the files with the raw SQL queries. Multiple
+queries should be separated with a string of `------------------`
+on a line of its own.
 
-The migrations are run inside a transaction in attempt to rollback all statements if one fails. However, some
-MySQL statements force a commit, preventing this from working as intended.
+### Additional
+
+The migrations are run inside a transaction and will attempt to rollback all statements if one fails. However, some
+MySQL statements force a commit, preventing this from working as intended with MySQL/MariaDB databases.
 
 ### Todo
 - Add tests
