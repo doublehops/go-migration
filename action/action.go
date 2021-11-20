@@ -15,7 +15,7 @@ type Action struct {
 
 type File struct {
 	Filename string
-	Queries  string
+	Queries  []string
 }
 
 func TrimExtension(filename string) string {

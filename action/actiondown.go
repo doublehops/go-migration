@@ -32,9 +32,11 @@ func (a *Action) processFileDown(file File) error {
 	defer tx.Rollback() // nolint
 
 	helpers.PrintMsg(fmt.Sprintf("Migrating down queries from: %s", file.Filename))
-	_, err = tx.Exec(file.Queries)
-	if err != nil {
-		return fmt.Errorf("\nthere was an error executing query. File: %s; Error: %s", file.Filename, err)
+	for _, q := range file.Queries {
+		_, err = tx.Exec(q)
+		if err != nil {
+			return fmt.Errorf("\nthere was an error executing query. File: %s; Error: %s", file.Filename, err)
+		}
 	}
 	filename := strings.Replace(file.Filename, ".down.sql", ".up.sql", 1)
 	_, err = tx.Exec(RemoveMigrationRecordFromTableSQL, filename)

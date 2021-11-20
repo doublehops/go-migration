@@ -1,5 +1,7 @@
 package action
 
+const QuerySeparator = "------------------"
+
 var GetLatestMigrationSQL =
 	`SELECT * FROM migrations
 	ORDER BY id DESC

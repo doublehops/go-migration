@@ -124,7 +124,9 @@ func (h *Handle) parseMigrations(filesToParse []string) ([]action.File, error) {
 			return files, fmt.Errorf("unable to read file: %s. %s", file, err)
 		}
 
-		thisFile.Queries = string(data)
+		queries := strings.Split(string(data), action.QuerySeparator)
+
+		thisFile.Queries = queries
 
 		files = append(files, thisFile)
 	}

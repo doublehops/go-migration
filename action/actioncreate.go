@@ -18,6 +18,8 @@ func (a *Action) CreateMigration(path string) error {
 	upPath := path + "/" + upName
 	downPath := path + "/" + downName
 
+	separatorMessage := fmt.Sprintf("-- You need to separate multiple queries with this dotted line: %s\n\n", QuerySeparator)
+
 	exampleUp :=
 `CREATE TABLE news (
     id INT(11) NOT NULL,
@@ -29,7 +31,8 @@ func (a *Action) CreateMigration(path string) error {
     FOREIGN KEY (currency_id) REFERENCES currency(id));
 	`
 
-	exampleDown := "DROP TABLE news"
+	exampleUp = separatorMessage + exampleUp
+	exampleDown := separatorMessage +"DROP TABLE news;\n\n"
 
 	err := ioutil.WriteFile(upPath, []byte(exampleUp), 0644)
 	if err != nil {
