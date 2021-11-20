@@ -12,24 +12,40 @@ import (
 func (a *Action) CreateMigration(path string) error {
 	currentTime := time.Now()
 	curTime := currentTime.Format("20060102_150405_")
-	name := curTime + a.Name + ".json"
-	path = path + "/" + name
+	name := curTime + a.Name
+	upName := name + ".up.sql"
+	downName := name + ".down.sql"
+	upPath := path + "/" + upName
+	downPath := path + "/" + downName
 
-	template := `{
-  "up": [
-    "CREATE TABLE news (id INT(11) NOT NULL, currency_id INT(11) NOT NULL, created_at DATETIME, updated_at DATETIME, deleted_at DATETIME, PRIMARY KEY (id), FOREIGN KEY (currency_id) REFERENCES currency(id));"
-  ],
-  "down": [
-    "DROP TABLE news"
-  ]
-}`
+	separatorMessage := fmt.Sprintf("-- You need to separate multiple queries with this dotted line: %s\n\n", QuerySeparator)
 
-	err := ioutil.WriteFile(path, []byte(template), 0644)
+	exampleUp :=
+`CREATE TABLE news (
+    id INT(11) NOT NULL,
+    currency_id INT(11) NOT NULL,
+    created_at DATETIME,
+    updated_at DATETIME,
+    deleted_at DATETIME,
+    PRIMARY KEY (id),
+    FOREIGN KEY (currency_id) REFERENCES currency(id));
+	`
+
+	exampleUp = separatorMessage + exampleUp
+	exampleDown := separatorMessage +"DROP TABLE news;\n\n"
+
+	err := ioutil.WriteFile(upPath, []byte(exampleUp), 0644)
 	if err != nil {
-		return fmt.Errorf("unable to write template file. %s", err)
+		return fmt.Errorf("unable to write template file: %s. %s", upPath, err)
 	}
 
-	helpers.PrintMsg("Migration file created: " + name + "\n")
+	err = ioutil.WriteFile(downPath, []byte(exampleDown), 0644)
+	if err != nil {
+		return fmt.Errorf("unable to write template file: %s. %s", downPath, err)
+	}
+
+	helpers.PrintMsg("Migration file created: " + upPath + "\n")
+	helpers.PrintMsg("Migration file created: " + downPath + "\n")
 
 	return nil
 }

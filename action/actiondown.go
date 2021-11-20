@@ -2,6 +2,7 @@ package action
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/doublehops/go-migration/helpers"
 )
@@ -31,13 +32,14 @@ func (a *Action) processFileDown(file File) error {
 	defer tx.Rollback() // nolint
 
 	helpers.PrintMsg(fmt.Sprintf("Migrating down queries from: %s", file.Filename))
-	for _, q := range file.Queries.Down {
+	for _, q := range file.Queries {
 		_, err = tx.Exec(q)
 		if err != nil {
-			return fmt.Errorf("\nthere was an error executing query. File: %s; query; %s; Error: %s", file.Filename, q, err)
+			return fmt.Errorf("\nthere was an error executing query. File: %s; Error: %s", file.Filename, err)
 		}
 	}
-	_, err = tx.Exec(RemoveMigrationRecordFromTableSQL, file.Filename)
+	filename := strings.Replace(file.Filename, ".down.sql", ".up.sql", 1)
+	_, err = tx.Exec(RemoveMigrationRecordFromTableSQL, filename)
 	if err != nil {
 		return fmt.Errorf("unable to remove from migration table with newly ran migration record. %w", err)
 	}

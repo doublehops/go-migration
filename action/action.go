@@ -1,6 +1,9 @@
 package action
 
-import "database/sql"
+import (
+	"database/sql"
+	"strings"
+)
 
 type Action struct {
 	Action string
@@ -12,10 +15,14 @@ type Action struct {
 
 type File struct {
 	Filename string
-	Queries  *Queries
+	Queries  []string
 }
 
-type Queries struct {
-	Up   []string `json:"up"`
-	Down []string `json:"down"`
+func TrimExtension(filename string) string {
+	var str string
+
+	str = strings.Replace(filename, ".up.sql", "", 1)
+	str = strings.Replace(str, ".down.sql", "", 1)
+
+	return str
 }
