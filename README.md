@@ -4,54 +4,27 @@ This is a tool that is designed to automate database migrations. It is based on
 the design of migrations of Yii2 framework.
 
 ### Usage
-`<entry_script> <action> <name|number>`
+`<entry_script> -action <action> <-name|-number> XXXX`
 
 Create new migration file:  
-`./migrate create add_user_table`  
+`./migrate -action create -name add_user_table`  
 
 Migrate pending migrations:  
-`./migrate up 1` // The number is optional. Will run all migrations if value is not included.  
+`./migrate -action up -number 1` // The number is optional. Will run all migrations if 
+value for number is not included.  
 
 Rollback past migrations:  
-`./migrate down 1` // number is optional. Will only rollback one migration if no value is included.  
+`./migrate -action down -number 1` // number is optional. Will only rollback one migration if no number value is included.  
 
 The library keeps track of which migrations have been run by creating and populating a table named `migrations`.
 
 ### Getting Started
 The library can be included into your application with the following example. A database connection and 
 path to the migration files need to be passed in.
-```golang
-package main
 
-import (
-	"database/sql"
-	"fmt"
+An example of usage can be seen in the file `cmd/main.go` which can be modified and added into your own project.
 
-	_ "github.com/go-sql-driver/mysql"
-
-	migrate "github.com/doublehops/go-migration"
-)
-
-func main() {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true", "username", "password", "127.0.0.1", "dbname")
-
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		fmt.Printf("error creating database connection. %s", err)
-	}
-
-	m, err := migrate.New(db, "/path/to/migrations")
-	if err != nil {
-		fmt.Printf("error creating migration instance. %s", err)
-	}
-
-	err = m.Migrate()
-	if err != nil {
-		fmt.Printf("error running migrations. %s", err)
-	}
-}
-```
-If this script was saved as `migrate.go`, you would run it with `go run migrate.go create new_user_table`
+The script can be ran with `go run cmd/main.go -action create -name new_user_table`
 
 Migration files will be saved to the location defined by the second parameter in call to `migrate.New()`. Two files will be created.
 One for migration up and another for down. Once created, you should edit the files with the raw SQL queries. Multiple
@@ -65,4 +38,4 @@ MySQL statements force a commit, preventing this from working as intended with M
 
 ### Todo
 - Add tests
-
+- split the files up into separate packages.
