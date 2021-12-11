@@ -1,4 +1,4 @@
-package migrations
+package action
 
 import (
 	"fmt"
@@ -6,17 +6,15 @@ import (
 	"os"
 	"sort"
 	"strings"
-
-	"github.com/doublehops/go-migration/action"
 )
 
 // listMigrationFiles will get migration files from the configured path.
-func (h *Handle) listMigrationFiles() ([]string, error) {
+func (a *Action) listMigrationFiles() ([]string, error) {
 
-	fileFilter := "."+ h.action.Action +".sql"
+	fileFilter := "."+ a.Action +".sql"
 
 	var files []string
-	f, err := ioutil.ReadDir(h.path)
+	f, err := ioutil.ReadDir(a.Path)
 	if err != nil {
 		return files, fmt.Errorf("unable to list migration files. %w", err)
 	}
@@ -31,15 +29,15 @@ func (h *Handle) listMigrationFiles() ([]string, error) {
 }
 
 // getPendingMigrationFiles will loop through all migration files and return the ones that haven't been run yet.
-func (h *Handle) getPendingMigrationFiles() ([]string, error) {
+func (a *Action) getPendingMigrationFiles() ([]string, error) {
 	var pendingFiles []string
 	var foundLastRan = false
 
-	lastRanMigration, err := h.getLatestRanMigration()
+	lastRanMigration, err := a.getLatestRanMigration()
 	if err != nil {
 		return pendingFiles, err
 	}
-	allFiles, err := h.listMigrationFiles()
+	allFiles, err := a.listMigrationFiles()
 	if err != nil {
 		return pendingFiles, err
 	}
@@ -50,7 +48,7 @@ func (h *Handle) getPendingMigrationFiles() ([]string, error) {
 
 	var i = 0
 	for _, file := range allFiles {
-		if i == h.action.Number {
+		if i == a.Number {
 			break
 		}
 		if file == lastRanMigration {
@@ -69,15 +67,15 @@ func (h *Handle) getPendingMigrationFiles() ([]string, error) {
 }
 
 // getPreviouslyMigratedFiles will loop through all migration files and return the ones that have already been run.
-func (h *Handle) getMigrationFilesToRollBack() ([]string, error) {
+func (a *Action) getMigrationFilesToRollBack() ([]string, error) {
 	var migrationsToRollBack []string
 	var foundLastRan = false
 
-	lastRanMigration, err := h.getLatestRanMigration()
+	lastRanMigration, err := a.getLatestRanMigration()
 	if err != nil {
 		return migrationsToRollBack, err
 	}
-	allFiles, err := h.listMigrationFiles()
+	allFiles, err := a.listMigrationFiles()
 	if err != nil {
 		return migrationsToRollBack, err
 	}
@@ -88,12 +86,12 @@ func (h *Handle) getMigrationFilesToRollBack() ([]string, error) {
 		return migrationsToRollBack, nil
 	}
 
-	lastRanMigrationShortName := action.TrimExtension(lastRanMigration)
+	lastRanMigrationShortName := TrimExtension(lastRanMigration)
 
 	var i = 0
 	for _, file := range allFiles {
-		shortFileName := action.TrimExtension(file)
-		if i == h.action.Number {
+		shortFileName := TrimExtension(file)
+		if i == a.Number {
 			break
 		}
 		if shortFileName == lastRanMigrationShortName {
@@ -114,17 +112,17 @@ func (h *Handle) getMigrationFilesToRollBack() ([]string, error) {
 }
 
 // parseMigrations will iterate through the files and unmarshal the JSON and add to the files slice.
-func (h *Handle) parseMigrations(filesToParse []string) ([]action.File, error) {
-	var files []action.File
+func (a *Action) parseMigrations(filesToParse []string) ([]File, error) {
+	var files []File
 	for _, file := range filesToParse {
 
-		thisFile := action.File{Filename: file}
-		data, err := os.ReadFile(h.path+"/"+file)
+		thisFile := File{Filename: file}
+		data, err := os.ReadFile(a.Path+"/"+file)
 		if err != nil {
 			return files, fmt.Errorf("unable to read file: %s. %s", file, err)
 		}
 
-		queries := strings.Split(string(data), action.QuerySeparator)
+		queries := strings.Split(string(data), QuerySeparator)
 
 		thisFile.Queries = queries
 

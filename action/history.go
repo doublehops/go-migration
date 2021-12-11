@@ -1,9 +1,8 @@
-package migrations
+package action
 
 import (
 	"database/sql"
 	"fmt"
-	"github.com/doublehops/go-migration/action"
 )
 
 type MigrationRecord struct {
@@ -13,10 +12,10 @@ type MigrationRecord struct {
 }
 
 // getLatestRanMigration will find the last processed migration.
-func (h *Handle) getLatestRanMigration() (string, error) {
+func (a *Action) getLatestRanMigration() (string, error) {
 
 	var record MigrationRecord
-	rows, err := h.db.Query(action.GetLatestMigrationSQL)
+	rows, err := a.DB.Query(GetLatestMigrationSQL)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", nil
@@ -37,9 +36,9 @@ func (h *Handle) getLatestRanMigration() (string, error) {
 }
 
 // addMigrationTable will add a `migration` table to the database to track what has been
-func (h *Handle) addMigrationTable() error {
+func (a *Action) addMigrationTable() error {
 
-	_, err := h.db.Exec(action.CreateMigrationsTable)
+	_, err := a.DB.Exec(CreateMigrationsTable)
 	if err != nil {
 		return fmt.Errorf("error creating migrations table. %s", err)
 	}
