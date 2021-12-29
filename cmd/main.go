@@ -4,10 +4,9 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"github.com/doublehops/go-migration"
 
 	_ "github.com/go-sql-driver/mysql"
-
-	"github.com/doublehops/go-migration/action"
 )
 
 /*
@@ -34,8 +33,8 @@ func main() {
 
 // getAction will read the flags from the command and populate an Args struct. The available flags are `action`,
 // `number` and `name`.
-func getAction() *action.Action {
-	var args action.Action
+func getAction() *go_migration.Action {
+	var args go_migration.Action
 
 	act := flag.String("action", "", "The intended action")
 	number := flag.Int("number", 0, "The number of migrations to run")

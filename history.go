@@ -1,4 +1,4 @@
-package action
+package go_migration
 
 import (
 	"database/sql"
