@@ -14,8 +14,7 @@ var CreateMigrationsTable = `CREATE TABLE migrations (
 	PRIMARY KEY(id)
 )`
 
-var CheckMigrationsTableExistsSQL = `SHOW TABLES
-`
+var CheckMigrationsTableExistsSQL = `SHOW TABLES`
 
 var InsertMigrationRecordIntoTableSQL = `INSERT INTO migrations 
 	(filename,created_at)
